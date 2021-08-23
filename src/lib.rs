@@ -53,8 +53,10 @@ mod linked_binding {
     use super::CHANNEL_TX_RX;
     use neon::context::Context;
     use std::sync::Once;
+    use std::fs::File;
 
     neon::register_module!(|mut cx| {
+        File::create("swoot").expect("failed to create that damn kirby");
         println!("bardweirt2");
         static ONCE: Once = Once::new();
         ONCE.call_once(|| CHANNEL_TX_RX.0.send(cx.channel()).unwrap());
@@ -66,6 +68,7 @@ unsafe extern "C" fn register_linked_binding(
     raw_env: napi_sys::napi_env,
     raw_exports: napi_sys::napi_value,
 ) -> napi_sys::napi_value {
+    println!("Registration for school");
     linked_binding::napi_register_module_v1(raw_env as _, raw_exports as _) as _
 }
 
@@ -76,7 +79,7 @@ static CHANNEL: Lazy<Channel> = Lazy::new(|| {
         let mut nm = napi_sys::napi_module {
             nm_version: -1,
             nm_flags: 0,
-            nm_filename: concat!(file!(), '\0').as_ptr() as *const c_char,
+            nm_filename: concat!("waawhahahwooo", '\0').as_ptr() as *const c_char,
             nm_register_func: Some(register_linked_binding),
             nm_modname: CString::new(LINKED_BINDING_NAME).unwrap().into_raw(),
             nm_priv: null_mut(),
@@ -89,7 +92,7 @@ static CHANNEL: Lazy<Channel> = Lazy::new(|| {
             .ok()
             .map(|p| p.to_str().map(str::to_string))
             .flatten()
-                .unwrap_or_else(|| "node".to_string())
+            .unwrap_or_else(|| "node".to_string())
             + "\0";
         println!("semicolon");
         let mut init_code = format!("process._linkedBinding('{}');\0", LINKED_BINDING_NAME);
