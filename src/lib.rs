@@ -30,7 +30,7 @@
 //! }
 //! ```
 
-mod sys;
+pub mod sys;
 
 pub use neon;
 use neon::event::Channel;
@@ -55,22 +55,24 @@ mod linked_binding {
     use std::sync::Once;
 
     neon::register_module!(|mut cx| {
+        println!("bardweirt2");
         static ONCE: Once = Once::new();
         ONCE.call_once(|| CHANNEL_TX_RX.0.send(cx.channel()).unwrap());
         Ok(())
     });
 }
 
-static CHANNEL: Lazy<Channel> = Lazy::new(|| {
-    std::thread::spawn(|| {
-        const LINKED_BINDING_NAME: &str = "__rust_init";
+unsafe extern "C" fn register_linked_binding(
+    raw_env: napi_sys::napi_env,
+    raw_exports: napi_sys::napi_value,
+) -> napi_sys::napi_value {
+    linked_binding::napi_register_module_v1(raw_env as _, raw_exports as _) as _
+}
 
-        unsafe extern "C" fn register_linked_binding(
-            raw_env: napi_sys::napi_env,
-            raw_exports: napi_sys::napi_value,
-        ) -> napi_sys::napi_value {
-            linked_binding::napi_register_module_v1(raw_env as _, raw_exports as _) as _
-        }
+static CHANNEL: Lazy<Channel> = Lazy::new(|| {
+    const LINKED_BINDING_NAME: &str = "nodemongus";
+    std::thread::spawn(move || {
+        println!("bardweirt");
         let mut nm = napi_sys::napi_module {
             nm_version: -1,
             nm_flags: 0,
@@ -80,25 +82,28 @@ static CHANNEL: Lazy<Channel> = Lazy::new(|| {
             nm_priv: null_mut(),
             reserved: [null_mut(); 4],
         };
+        println!("bardweirt3");
         unsafe { napi_sys::napi_module_register(&mut nm) };
-
+        println!("bardweirt4");
         let mut argv0 = current_exe()
             .ok()
             .map(|p| p.to_str().map(str::to_string))
             .flatten()
-            .unwrap_or_else(|| "node".to_string())
+                .unwrap_or_else(|| "node".to_string())
             + "\0";
-        let mut init_code = format!("process._linkedBinding('{}')\0", LINKED_BINDING_NAME);
+        println!("semicolon");
+        let mut init_code = format!("process._linkedBinding('{}');\0", LINKED_BINDING_NAME);
         let mut option_e = "-e\0".to_string();
         let args = &mut [
             argv0.as_mut_ptr() as *mut c_char,
             option_e.as_mut_ptr() as *mut c_char,
             init_code.as_mut_ptr() as *mut c_char,
         ][..];
+        println!("bardweirt5 {}", argv0);
         unsafe {
             sys::node_start(args.len() as i32, args.as_mut_ptr());
         }
-        panic!("Node.js runtime closed expectedly")
+        panic!("Node.js runtime closed expectedly");
     });
     let channel = CHANNEL_TX_RX.1.lock().unwrap().recv().unwrap();
     channel
