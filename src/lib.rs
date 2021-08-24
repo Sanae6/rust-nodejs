@@ -53,7 +53,6 @@ mod linked_binding {
     use super::CHANNEL_TX_RX;
     use neon::context::Context;
     use std::sync::Once;
-    use std::fs::File;
 
     neon::register_module!(|mut cx| {
         static ONCE: Once = Once::new();
